@@ -1,3 +1,3 @@
 # DO288 Containerized Example Applications
 
-This repository contains a collection of sample containerized applications.  To complete the course you need to fork this repo into your personal Github account.In the context of payment processing, including wage garnishment payments via systems like ACH or Fedwire, the value date of a payment (often referred to as the settlement date or effective date) is generally intended to be a firm date but can be subject to change depending on the payment channel, processing engine, and operational factors. Below, I explain the role of the value date, whether it’s firm or subject to change, and industry observations, with a focus on ISO 20022’s pacs.008 (Customer Credit Transfer Initiation) and wage garnishment scenarios.
+This repository contains a collection of sample containerized applications. 
