@@ -1,82 +1,82 @@
 # DO288 Containerized Example Applications
 
-Here’s a clear, structured meeting agenda based on your notes. The goal is to drive alignment around making PODS the authoritative source for all payment statuses and related event data.
+Here’s the thing about your Liquidity Management System sweep use case:
 
-⸻
+1. Can you use PaymentInformation.CategoryPurpose.Code for LMS sweep?
+Yes, you can — if you treat Category Purpose as a high-level business reason for the payment. ISO 20022’s CategoryPurpose (in PmtInf/CtgyPurp/Cd) is intended for indicating the underlying category of the payment — things like SALA (salary), TREA (treasury), SUPP (supplier payment), DIVI (dividends), PENS (pensions).
 
-Meeting Agenda: Establishing PODS as the Authoritative Source for Payments
+For sweeps, the most relevant standard code in the ISO external code list is:
 
-Date: [Insert Date]
-Time: [Insert Time]
-Duration: [e.g., 60 minutes]
-Attendees: Ram, Daiva, Libby, Raj, Amit, Byron (optional), [Add others as needed]
-Facilitator: [Insert Name]
+SWPT — Sweep Transaction
 
-⸻
+“Movement of funds for liquidity management purposes between two accounts belonging to the same customer.”
 
-1. Opening and Purpose (5 mins)
-	•	Quick context-setting
-	•	Objective: Discuss and align on making PODS the single authoritative source for all payment statuses and events across payment engines.
+This fits your LMS sweep exactly.
 
-⸻
+So if your LMS is instructing a sweep via your Router API, you can populate:
 
-2. Current State Overview (10 mins)
-	•	Payment Router behavior
-	•	When it is invoked, and examples of non-router use cases (e.g., LMS, mortgage disbursements)
-	•	Orchestration Layers
-	•	SPS vs. GMM: Clarifying roles and responsibilities
+xml
+Copy
+Edit
+<PmtInf>
+   ...
+   <CtgyPurp>
+      <Cd>SWPT</Cd>
+   </CtgyPurp>
+</PmtInf>
+Pros
 
-⸻
+Standards-aligned (any ISO 20022-aware recipient will understand it’s a sweep)
 
-3. Event Flow and Status Tracking (15 mins)
-	•	View Intellect / Liquidity Needs
-	•	Centralized status updates (push vs pull)
-	•	Importance of a consistent API or Kafka-based delivery mechanism
-	•	Current Gaps
-	•	Engines not aligned to emit standardized events
-	•	LMS missing listener service and event publishing
-	•	Proposed Direction
-	•	Normalize all vendor-specific events into Pack 002 format
-	•	PODS to subscribe to these via Kafka
+Allows downstream systems (fraud, analytics, reporting) to filter/route on category without parsing free text
 
-⸻
+Cons
 
-4. PODS as the Central Source (15 mins)
-	•	Why PODS?
-	•	Global view of all payments regardless of origin (ACH, Fedwire, RBC Book, etc.)
-	•	Reduces complexity for consumers by offering a single interface
-	•	ODR Integration
-	•	ODR as a replica of PODS for RBC Clear context
-	•	Confirm pattern of events flowing from ODR → PODS
-	•	Target State
-	•	All engines emit normalized events → ODR/WallPage → PODS
-	•	Push model preferred; pull allowed only in low-volume scenarios
+It’s descriptive, but not authoritative for who initiated — that’s InitgPty
 
-⸻
+2. Alternative/additional tags you might want to use
+If you want a system identifier for routing or analytics beyond the standard category, you could also:
 
-5. Implementation & Ownership Discussion (10 mins)
-	•	Who owns what:
-	•	Raj: FedWire, ACH, Book-to-book
-	•	Amit: Consumer of events; handles push/pull logic
-	•	Payment engine teams: Emit and align events to PODS
-	•	Estimation Considerations
-	•	Work effort to include listener services, event transformation, and publishing
-	•	Avoid estimating per payment; focus on infrastructure and integration
+InitiatingParty in GrpHdr — Set to your LMS as the actual initiator (<Nm>Liquidity Management System</Nm> or OrgId with some identifier).
 
-⸻
+PaymentTypeInformation.LocalInstrument.Code — If you want an internal routing key that’s not exposed as a business category. Could use a bank-specific local instrument code for "LMS-SWEEP".
 
-6. Action Items & Next Steps (5 mins)
-	•	Add Daiva to the working group
-	•	Identify PODS schema versioning and publishing timelines
-	•	Schedule follow-up meeting with all stakeholders
-	•	Define success metrics and timelines for Pack 002 normalization (6–8 months goal)
+InstructionForNextAgent (if bank-to-bank) — For additional processing instructions, though not the primary place for business category.
 
-⸻
+Purpose.Code (in transaction) — Distinguishes the purpose of a single transaction, whereas CategoryPurpose applies to the whole batch.
 
-Pre-Reads / Pre-Work
-	•	Review current payment status flows for each engine
-	•	Come prepared to discuss what event data is currently emitted and what’s missing
+3. My recommendation for your Router API schema
+For an LMS sweep via your ISO 20022 request:
 
-⸻
+GrpHdr.InitgPty → LMS entity ID (so you always know who the true initiator is)
 
-Let me know if you want a slide version or an editable doc version of this.
+PmtInf.CtgyPurp.Cd → SWPT (standard sweep code)
+
+Optionally: PmtTpInf.LclInstrm.Cd → internal LMS code if you need to route differently than just "sweep"
+
+This way:
+
+Your downstream engines can recognize sweeps without custom parsing
+
+Fraud/AML can distinguish them from normal wires/ACH
+
+You keep your schema fully standards-compliant
+
+If you want, I can give you a full XML snippet showing exactly how an LMS sweep would look in your Router API’s ISO 20022 payload — ready to send to FED, SWIFT, ACH, etc.
+Do you want me to prepare that?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ChatGPT can make mistakes. Check important info. See Cookie Preferences.
+
